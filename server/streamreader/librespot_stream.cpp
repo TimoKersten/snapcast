@@ -47,7 +47,7 @@ LibrespotStream::LibrespotStream(PcmListener* pcmListener, const StreamUri& uri)
     params_ = "--name \"" + devicename + "\"";
     if (!username.empty() && !password.empty())
         params_ += " --username \"" + username + "\" --password \"" + password + "\"";
-    params_ += " --bitrate " + bitrate + " --backend pipe";
+    params_ += " --bitrate " + bitrate + " --backend pipe --enable-volume-normalisation";
     if (!cache.empty())
         params_ += " --cache \"" + cache + "\"";
     if (!volume.empty())
