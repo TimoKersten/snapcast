@@ -20,6 +20,7 @@
 #include "process_stream.hpp"
 #include "common/aixlog.hpp"
 #include "common/snap_exception.hpp"
+#include "common/time_defs.hpp"
 #include "common/utils.hpp"
 #include "common/utils/string_utils.hpp"
 #include <fcntl.h>
@@ -154,6 +155,7 @@ void ProcessStream::worker()
         stderrReaderThread_ = thread(&ProcessStream::stderrReader, this);
         stderrReaderThread_.detach();
 
+        // TODO: Can this be a problem when time jumps, e.g. through ntp reconfigure?
         chronos::systemtimeofday(&tvChunk);
         tvEncodedChunk_ = tvChunk;
         long nextTick = chronos::getTickCount();
@@ -163,6 +165,21 @@ void ProcessStream::worker()
         {
             while (active_)
             {
+                {
+                   timeval now;
+                   chronos::systemtimeofday(&now);
+                   // TODO: this is a crude check. Rather, we'd rather not have the stream time jump at all.
+                   // Should we use chrono::steady_clock?
+                   auto chronos_now = chronos::time_point_clk(chronos::sec(now.tv_sec) + chronos::usec(now.tv_usec));
+                   auto chronos_tvChunk = chronos::time_point_clk(chronos::sec(tvChunk.tv_sec) + chronos::usec(tvChunk.tv_usec));
+                   if(chronos_tvChunk < chronos_now && chronos_now - chronos_tvChunk > chronos::msec(500)) {
+                   // if(tvChunk.tv_sec < now.tv_sec - 1) {
+                     LOG(WARNING) << "Stream time jumped from " << tvChunk.tv_sec << " to "  << now.tv_sec << "\n";
+                     tvChunk = now;
+                     tvEncodedChunk_ = tvChunk;
+                   }
+                }
+
                 chunk->timestamp.sec = tvChunk.tv_sec;
                 chunk->timestamp.usec = tvChunk.tv_usec;
                 int toRead = chunk->payloadSize;
@@ -194,6 +211,10 @@ void ProcessStream::worker()
 
                 if (!active_)
                     break;
+
+                timeval now;
+                chronos::systemtimeofday(&now);
+                LOG(DEBUG) << "Encoding chunk at " << now.tv_sec << " with timestamp "  << chunk->timestamp.sec << " chunk->start:" << chunk->start().time_since_epoch().count() << "\n";
 
                 encoder_->encode(chunk.get());
 

@@ -88,9 +88,8 @@ void StreamServer::onStateChanged(const PcmStream* pcmStream, const ReaderState&
 }
 
 
-void StreamServer::onChunkRead(const PcmStream* pcmStream, msg::PcmChunk* chunk, double /*duration*/)
+void StreamServer::onChunkRead(const PcmStream* pcmStream, msg::PcmChunk* chunk, double duration)
 {
-    //	LOG(INFO) << "onChunkRead (" << pcmStream->getName() << "): " << duration << "ms\n";
     bool isDefaultStream(pcmStream == streamManager_->getDefaultStream().get());
     unique_ptr<msg::PcmChunk> chunk_ptr(chunk);
 

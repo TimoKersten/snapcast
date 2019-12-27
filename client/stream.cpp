@@ -256,9 +256,10 @@ bool Stream::getPlayerChunk(void* outputBuffer, const cs::usec& outputBufferDacT
                 while (sleep_ > chunk_->duration<cs::usec>())
                 {
                     LOG(INFO) << "sleep > chunkDuration: " << cs::duration<cs::msec>(sleep_) << " > " << chunk_->duration<cs::msec>().count()
+                              << ", time server now " << std::chrono::time_point_cast<cs::msec>(TimeProvider::serverNow()).time_since_epoch().count()
+                              << ", chunk_->start: " <<  std::chrono::time_point_cast<cs::msec>(chunk_->start()).time_since_epoch().count()
                               << ", chunks: " << chunks_.size() << ", out: " << cs::duration<cs::msec>(outputBufferDacTime)
                               << ", needed: " << cs::duration<cs::msec>(bufferDuration) << "\n";
-                    sleep_ = std::chrono::duration_cast<cs::usec>(TimeProvider::serverNow() - chunk_->start() - bufferMs_ + outputBufferDacTime);
                     if (!chunks_.try_pop(chunk_, outputBufferDacTime))
                     {
                         LOG(INFO) << "no chunks available\n";
@@ -266,6 +267,7 @@ bool Stream::getPlayerChunk(void* outputBuffer, const cs::usec& outputBufferDacT
                         sleep_ = cs::usec(0);
                         return false;
                     }
+                    sleep_ = std::chrono::duration_cast<cs::usec>(TimeProvider::serverNow() - chunk_->start() - bufferMs_ + outputBufferDacTime);
                 }
             }
 
